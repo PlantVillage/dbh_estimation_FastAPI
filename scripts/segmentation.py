@@ -10,10 +10,13 @@ from matplotlib import pyplot as plt
 import pandas as pd
 import numpy as np
 from PIL import Image
+import PIL
 
 # %tensorflow_version 1.x
 import tensorflow.compat.v1 as tf
 import math
+
+import traceback
 
 domain = 'tree_trunk'
 ## model path
@@ -271,9 +274,18 @@ def getTreeDBH(filename, tag_width):
         # load image
         im = Image.open(filename)
 
+        # pre-process image 
+          # determine if image needs to be rotated and rotate it
+          # determine if image needs to be zoomed in and do so
+          # 
+
         # run model 
         _, seg_map = MODEL.run(im)
         seg_image = label_to_color_image(seg_map, domain).astype(np.uint8)
+
+        # move to background later -- saved mask
+        new_seg_iamge = Image.fromarray(np.uint8(seg_image)).convert('RGB')
+        new_seg_iamge.save('data/outputs/temp.png')
 
         # get pixels per cm value for the image
         pixelsPerMetric = getPixelPerMetric(seg_image, tag_width)
@@ -282,7 +294,8 @@ def getTreeDBH(filename, tag_width):
         pixels_width = getTagAndTrunkPixelsWidth(seg_map)["trunk"]
         
         dbh = pixels_width/pixelsPerMetric
+
         return dbh
 
-    except:
+    except Exception:
         return None
