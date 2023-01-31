@@ -1,4 +1,3 @@
-from typing import Union
 from fastapi import FastAPI, File, UploadFile
 from scripts import helpers, segmentation
 import time
