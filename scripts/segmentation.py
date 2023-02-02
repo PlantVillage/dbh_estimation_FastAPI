@@ -67,19 +67,25 @@ def getTreeDBH(filename, tag_width):
         # load image
         im = Image.open(filename)
 
-        # check image orientation and flip if needed
+        file = filename.split("/")[-1].split(".")[0]
+        #print(file)
+        
+        # check image orientation and rotate if needed
         width, height = im.size
         if width > height:
           im = im.rotate(270, PIL.Image.NEAREST, expand = 1)
+          im.save(filename)
 
         # run model 
-        _ , seg_map = MODEL.run(im)
+        resized_img , seg_map = MODEL.run(im)
         seg_image = deeplab_model.label_to_color_image(seg_map, domain).astype(np.uint8)
 
         # move to background later -- saved mask
         new_seg_iamge = Image.fromarray(np.uint8(seg_image)).convert('RGB')
         new_seg_iamge.save('data/outputs/temp.png')
+        resized_img.save('data/outputs/resized_img.png')
 
+        '''
         # get pixels per cm value for the image
         pixelsPerMetric = pa.getPixelPerMetric(seg_image, tag_width)
         #print(pixelsPerMetric)
@@ -89,6 +95,9 @@ def getTreeDBH(filename, tag_width):
           seg_image = runTilles.runTilles(filename)
           pixelsPerMetric = pa.getPixelPerMetric(seg_image, tag_width)
 
+          if pixelsPerMetric == None: # if you still don't find tag return None
+            return None
+
           # move to background later -- saved mask
           new_seg_iamge = Image.fromarray(np.uint8(seg_image)).convert('RGB')
           new_seg_iamge.save('data/outputs/temp.png')
@@ -96,12 +105,23 @@ def getTreeDBH(filename, tag_width):
         # check if the tag detected is just noise
         if pixelsPerMetric != None and pixelsPerMetric < 1:
           return 'No tag was detected'
+        '''
 
-        # get pixel width of tree around the tag
-        pixels_width = pa.getTreePixelWidth(seg_image) 
+        # get pixel width of tree around the tag and generate visualization
+        pixels_width = pa.getTreePixelWidth(seg_image, file) 
+
+        if pixels_width == None:
+          print("Running Tilles")
+          seg_image = runTilles.runTilles(filename)
+          pixels_width = pa.getTreePixelWidth(seg_image, file) 
+
+          # move to background later -- saved mask
+          new_seg_iamge = Image.fromarray(np.uint8(seg_image)).convert('RGB')
+          new_seg_iamge.save('data/outputs/temp.png')
+
         
         # ESTIMATE DBH !!!
-        dbh = pixels_width/pixelsPerMetric
+        dbh = pixels_width * tag_width
 
         return dbh
 

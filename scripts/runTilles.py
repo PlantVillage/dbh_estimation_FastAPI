@@ -10,14 +10,15 @@ def runTile(filename, tile_number):
     im = Image.open(filename)
 
     # run model 
-    _ , seg_map = deeplab_model.MODEL.run(im)
+    resized_img , seg_map = deeplab_model.MODEL.run(im)
     seg_image = deeplab_model.label_to_color_image(seg_map, deeplab_model.domain).astype(np.uint8)
 
     # move to background later -- saved mask
     new_seg_iamge = Image.fromarray(np.uint8(seg_image)).convert('RGB')
     new_seg_iamge.save(f'data/outputs/temp_tile_{tile_number}.png')
+    resized_img.save(f'data/outputs/resized_img_{tile_number}.png')
 
-    return f'data/outputs/temp_tile_{tile_number}.png'
+    return [f'data/outputs/temp_tile_{tile_number}.png', f'data/outputs/resized_img_{tile_number}.png']
 
 
 def stitch_tiles_together(tile_paths) -> Image.Image:
@@ -36,6 +37,7 @@ def stitch_tiles_together(tile_paths) -> Image.Image:
         col = 0
         for p in tile_paths:
             with Image.open(p) as image_tile:
+                #print(image_tile.size)
 
                 #detected_class_indices: List[int] = np.unique(image).tolist()
                 #print(f"tile: {p} has classes: {detected_class_indices}")
@@ -61,11 +63,18 @@ def runTilles(path):
 
     # run model on tiles
     mask_paths = []
+    resized_img_paths = []
     for i in range(len(tiles)):
-        mask_paths.append(runTile(tiles[i].filename, i))
+        mask_file, img_file = runTile(tiles[i].filename, i)
+        mask_paths.append(mask_file)
+        resized_img_paths.append(img_file)
 
     # put mask together
     seg_image = stitch_tiles_together(mask_paths)
+
+    # stich resized images together
+    resized_img = stitch_tiles_together(resized_img_paths)
+    resized_img.save('data/outputs/resized_img.png')
 
     # convert image into numpy arrray
     seg_image = asarray(seg_image)

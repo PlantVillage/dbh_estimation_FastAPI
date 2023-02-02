@@ -2,6 +2,10 @@ import numpy as np
 import cv2
 import traceback
 from itertools import groupby
+from matplotlib import gridspec
+import matplotlib.pyplot as plt
+from PIL import Image, ImageDraw
+import imutils
 
 
 
@@ -12,24 +16,15 @@ tag  = [255,150,100]
 white = [255,255,255]
 black = [0,0,0]
 
+
+'''
 def getTagAndTrunkPixelsWidth(seg_map): 
 
-    ''' 
-    Takes model pixels predictions and return estimation of tag and tree trunk width
-    '''
 
     trunk = [0,85,0]
     tag  = [255,150,100]
     #white = [255,255,255]
     #black = [0,0,0]
-
-    '''
-    def getTagAndTrunkWidth(row):
-        return {
-            "tag_width": row.tolist().count(3),
-            "trunk_width": row.tolist().count(2)
-        }
-    '''
 
     def getTagAndTrunkWidth(row):
       return {
@@ -79,6 +74,9 @@ def getTagAndTrunkPixelsWidth(seg_map):
         "tag": np.mean(tag_widths),
         "trunk": np.mean(trunk_widths)
     }
+
+'''
+
 
 
 
@@ -156,23 +154,98 @@ def getPixelPerMetric(seg_image, tag_width):
     return None
 
 
-def getTreePixelWidth(seg_image):
-  def groups(l):
-    return [sum(g) for i, g in groupby(l) if i == 1]
+def find_continuous_indexes(lst, value):
+    result = []
+    start_index = None
+    end_index = None
+    for i in range(len(lst)):
+        if lst[i].tolist() == value:
+            if start_index is None:
+                start_index = i
+            end_index = i
+        else:
+            if start_index is not None:
+                result.append((start_index, end_index))
+                start_index = None
+                end_index = None
+    if start_index is not None:
+        result.append((start_index, end_index))
+    return result
 
-  def getTagAdjacentTreePixelLength(pixel_length):
-    return np.max(pixel_length)
-  
-  # loop over the rows and determine the number of pixels that are tree trunk
-  def getTreePixelLenght(temp, im):
-      tree_pixels = [1 if pixel == trunk else 0 for pixel in im[temp].tolist()]
-      tree_pixels_lengths = groups(tree_pixels)
-      tag_adjacent_tree_pixel = getTagAdjacentTreePixelLength(tree_pixels_lengths)
-      return tag_adjacent_tree_pixel
-  
-  y1 = y3 = 0; y2 = y4 = len(seg_image) # use the average tree pixel length all over the image
+def generateVisualization(seg_image, x,y, avg_tree_pixel_width, w , file, indexes):
+            output_path = f'data/outputs/overlay_{file}.png'
+            fig = plt.figure(figsize=(50, 20))
+            grid_spec = gridspec.GridSpec(1, 4, width_ratios=[1, 1, 1, 1])
 
-  try: # try to get the average pixel length just above  and below the tag
+            # show  resized image
+            filename = 'data/outputs/resized_img.png'
+            img = Image.open(filename)
+            plt.subplot(grid_spec[0])
+            plt.title('Resized Image', fontdict = {'fontsize' : 30})
+            plt.imshow(img)
+            plt.axis('off')
+
+            # show mask 
+            mask_location = 'data/outputs/temp.png'
+            mask = Image.open(mask_location)
+            plt.subplot(grid_spec[1])
+            plt.title('Segmentation Mask', fontdict = {'fontsize' : 30})
+            plt.imshow(mask)
+            plt.axis('off')
+
+            # show mask overlay image
+            alpha = 0.6
+            plt.subplot(grid_spec[2])
+            plt.title('Segmentation Image Overlay', fontdict = {'fontsize' : 30})
+            plt.imshow(img)
+            plt.imshow(seg_image, alpha=alpha)
+            plt.axis('off')
+
+            # show mask ovelay on image with tag and trunk pixel widht estimations
+            plt.subplot(grid_spec[3])
+            plt.title('Pixel Width Overlay', fontdict = {'fontsize' : 30})
+            DrawImage = ImageDraw.Draw(img)
+            # draw tag width estimation
+            DrawImage.line([(int(x-(w/2)), int(y+(w/2))),(int(x+(w/2)), int(y+(w/2)))], fill="red", width=5)
+            # draw tree trunk width estimation
+
+            tree_x1 = indexes[0]
+            wt = avg_tree_pixel_width
+            DrawImage.line([(tree_x1 , int(y-(w/2))),( tree_x1 + wt , int(y-(w/2)))], fill="red", width=5)
+            plt.imshow(img)
+            plt.imshow(seg_image, alpha=alpha)
+
+            # save overlay images
+            plt.savefig(output_path)
+
+
+def getTreePixelWidth(seg_image, file):
+  try:
+    # loop over the rows and determine the number of pixels that are tree trunk
+    def getTreePixelLenght(y, seg_image, x):
+        x = int(x)
+        def getLength(indexes):
+            return indexes[1] - indexes[0]
+
+        try:
+            row = seg_image[y]
+            adjacent_trunks = find_continuous_indexes(row, trunk)
+            for indexes in adjacent_trunks:
+                if x in np.arange(indexes[0],indexes[1]):
+                    return [getLength(indexes), indexes]
+
+
+            #return tag_adjacent_tree_pixel
+            max_length = np.max([getLength(indexes) for indexes in adjacent_trunks])
+            indexes = adjacent_trunks.index(max_length)
+            return [max_length, indexes]
+        except:
+            print(traceback.format_exc())
+            return None
+    
+    y1 = y3 = 0; y2 = y4 = y = int(len(seg_image)/3) # use the average tree pixel length all over the image
+
+
     # can make this global and utilize aleady calculated one in the pixel estimation funciton
     tag_im = getTagMask(seg_image)
     tag_contours = getContour(tag_im)
@@ -180,37 +253,39 @@ def getTreePixelWidth(seg_image):
     c = tag_contours[getTagContour(tag_contours)]
 
     box = cv2.minAreaRect(c)
-    (_,_), (_,h), _ = box
-    #box = cv2.cv.BoxPoints(box) if imutils.is_cv2() else cv2.boxPoints(box)
-    #box = np.array(box, dtype="int")
+    (x,y), (w,h), _ = box
 
     # determine y1, y2 - scenario 1 (best case tag is right in the middle of bottom of the image)
+    box = cv2.cv.BoxPoints(box) if imutils.is_cv2() else cv2.boxPoints(box)
+    box = np.array(box, dtype="int")
     y2 = np.min([int(y) for (_,y) in box.tolist()]) # find y cordintate for the tag position
     y1 = y2 - int(h)
 
     if y1 < 0: # if tag happens to be at the top of the image
         y1=y2
 
-    y3 = y2 = np.max([int(y) for (_,y) in box.tolist()])
+    y3 = np.max([int(y) for (_,y) in box.tolist()])
     y4 = y3  + int(h)
 
     if y4 > len(seg_image):
         y4 = y3
-  except:
-    pass # if it fails we just continue 
 
-  try: # try to averae pixels above and below tag
-
-    top_avg_tree_pixel_width = np.mean([getTreePixelLenght(i, seg_image) for i in range(y1, y2)])
-    bottom_avg_tree_pixel_width = np.mean([getTreePixelLenght(i, seg_image) for i in range(y3, y4)])
-
-    avg_tree_pixel_width = (top_avg_tree_pixel_width + bottom_avg_tree_pixel_width)/2
-  except:
+    # calculate pixel length for the tree
     if y1 ==y2: # average pixels below tag
-        avg_tree_pixel_width = np.mean([getTreePixelLenght(i, seg_image) for i in range(y3, y4)])
+        #avg_tree_pixel_width = np.mean([getTreePixelLenght(i, seg_image, x) for i in range(y3, y4)])
+        avg_tree_pixel_width = getTreePixelLenght(y3, seg_image, x)
     elif y3 == y4: # average pixels above tag
-        avg_tree_pixel_width = np.mean([getTreePixelLenght(i, seg_image) for i in range(y1, y2)])
-    else: # average pixels all over the image
-        avg_tree_pixel_width = np.mean([getTreePixelLenght(i, seg_image) for i in range(y1, y2)])
+        #avg_tree_pixel_width = np.mean([getTreePixelLenght(i, seg_image, x) for i in range(y1, y2)])
+        avg_tree_pixel_width = getTreePixelLenght(y2, seg_image, x)
+    else:
+        top_avg_tree_pixel_width = getTreePixelLenght(y2, seg_image, x) 
+        #bottom_avg_tree_pixel_width = np.mean([getTreePixelLenght(i, seg_image, x) for i in range(y3, y4)])
+        avg_tree_pixel_width = top_avg_tree_pixel_width 
 
-  return avg_tree_pixel_width
+    generateVisualization(seg_image, x,y, avg_tree_pixel_width[0] ,w, file, avg_tree_pixel_width[1])
+  
+    return avg_tree_pixel_width[0]/w
+    
+  except:
+    print(traceback.format_exc())
+    return None 

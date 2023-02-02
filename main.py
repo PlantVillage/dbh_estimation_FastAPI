@@ -21,7 +21,8 @@ def read_root():
 async def recognize(tag_width : float ,uploaded_file: UploadFile = File(...)):
     
     # generate a temporal filename
-    filename = f"{helpers.generate_random_file_name()}@{uploaded_file.filename}"
+    #filename = f"{helpers.generate_random_file_name()}@{uploaded_file.filename}"
+    filename = uploaded_file.filename
     file_location = f"data/{filename}"
     
     # save file temporally
