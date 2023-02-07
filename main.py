@@ -17,8 +17,8 @@ def read_root():
     return {"response": "Server is running"}
 
 
-@app.post("/recognize/{tag_width}")
-async def recognize(tag_width : float ,uploaded_file: UploadFile = File(...)):
+@app.post("/recognize/{tag_width}/{measured_dbh}")
+async def recognize(tag_width : float , measured_dbh: float ,uploaded_file: UploadFile = File(...)):
     
     # generate a temporal filename
     #filename = f"{helpers.generate_random_file_name()}@{uploaded_file.filename}"
@@ -29,7 +29,9 @@ async def recognize(tag_width : float ,uploaded_file: UploadFile = File(...)):
     helpers.saveUploadfile(file_location, uploaded_file)
 
     # run model on saved image
-    dbh = segmentation.getTreeDBH(file_location, tag_width)
+    dbh = segmentation.getTreeDBH2(file_location, tag_width, measured_dbh)
+
+    #print(measured_dbh)
 
     helpers.removefile(file_location)
     # upload file to s3 and delete from local drive in the background

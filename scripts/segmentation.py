@@ -5,64 +5,16 @@ import PIL
 import traceback
 from scripts import pixel_analyzer as pa
 from scripts import deeplab_model, runTilles
-
+import os
 
 domain = 'tree_trunk'
 
 MODEL = deeplab_model.MODEL # load from deeplab_script
 
-'''
-def create_tree_trunk_label_colormap():
-  """Creates a label colormap for the locusts dataset.
-  Returns:
-    A Colormap for visualizing segmentation results.
-  """
-  colormap = np.zeros((4, 3), dtype=int)
-  colormap[0] = [0,0,0]
-  colormap[1] = [255,255,255]
-  colormap[2] = [0,85,0]
-  colormap[3] = [255,150,100]
-  return colormap
-
-def label_to_color_image(label, domain):
-  """
-  Adds color defined by the dataset colormap to the label.
-  Args:
-    label: A 2D array with integer type, storing the segmentation label.
-    domain: A string specifying which label map to use
-  Returns:
-    result: A 2D array with floating type. The element of the array
-      is the color indexed by the corresponding element in the input label
-      to the PASCAL color map.
-  Raises:
-    ValueError: If label is not of rank 2 or its value is larger than color
-      map maximum entry.
-  """
-  if label.ndim != 2:
-    raise ValueError('Expect 2-D input label')
-  elif domain == 'tree_trunk':
-    colormap = create_tree_trunk_label_colormap()
-  if np.max(label) >= len(colormap):
-    raise ValueError('label value too large.')
-
-  return colormap[label]
-
-
-def get_label_names(domain):
-  if domain == 'tree_trunk': #dumby labels
-    LABEL_NAMES = np.asarray([ "Unlabeled", "Background", "Tree trunk", "Tag"
-    ])
-  else:
-    LABEL_NAMES = 'error'
-
-  return LABEL_NAMES
-
-label_names = get_label_names(domain)
-FULL_LABEL_MAP = np.arange(len(label_names)).reshape(len(label_names), 1)
-FULL_COLOR_MAP = label_to_color_image(FULL_LABEL_MAP, domain)
-'''
-
-def getTreeDBH(filename, tag_width):
+def getTreeDBH(filename, tag_width, measured_dbh):
+    '''
+    Run some images as tiles if no tag was detected with running the full image
+    '''
     try:
         # load image
         im = Image.open(filename)
@@ -82,43 +34,28 @@ def getTreeDBH(filename, tag_width):
 
         # move to background later -- saved mask
         new_seg_iamge = Image.fromarray(np.uint8(seg_image)).convert('RGB')
-        new_seg_iamge.save('data/outputs/temp.png')
-        resized_img.save('data/outputs/resized_img.png')
-
-        '''
-        # get pixels per cm value for the image
-        pixelsPerMetric = pa.getPixelPerMetric(seg_image, tag_width)
-        #print(pixelsPerMetric)
-
-        # if no tag is detected run the image as tiles
-        if pixelsPerMetric == None:
-          seg_image = runTilles.runTilles(filename)
-          pixelsPerMetric = pa.getPixelPerMetric(seg_image, tag_width)
-
-          if pixelsPerMetric == None: # if you still don't find tag return None
-            return None
-
-          # move to background later -- saved mask
-          new_seg_iamge = Image.fromarray(np.uint8(seg_image)).convert('RGB')
-          new_seg_iamge.save('data/outputs/temp.png')
-
-        # check if the tag detected is just noise
-        if pixelsPerMetric != None and pixelsPerMetric < 1:
-          return 'No tag was detected'
-        '''
+        new_seg_iamge.save('data/outputs/seg_image_original.png')
+        resized_img.save('data/outputs/resized_original_img.png')
+        #print(resized_img.size)
 
         # get pixel width of tree around the tag and generate visualization
-        pixels_width = pa.getTreePixelWidth(seg_image, file) 
+        pixels_width = pa.getTreePixelWidth(seg_image, file, measured_dbh, tag_width) 
 
+        # if pixel_width is None then no tag was detected try tilling the image
         if pixels_width == None:
           print("Running Tilles")
           seg_image = runTilles.runTilles(filename)
-          pixels_width = pa.getTreePixelWidth(seg_image, file) 
 
           # move to background later -- saved mask
           new_seg_iamge = Image.fromarray(np.uint8(seg_image)).convert('RGB')
-          new_seg_iamge.save('data/outputs/temp.png')
+          new_seg_iamge.save('data/outputs/seg_image_original.png')
 
+          # get tree/tag pixel ration
+          pixels_width = pa.getTreePixelWidth(seg_image, file, measured_dbh, tag_width) 
+
+        # if no tag is detected return the message
+        if pixels_width == None:
+          return "No tag detected"
         
         # ESTIMATE DBH !!!
         dbh = pixels_width * tag_width
@@ -127,4 +64,98 @@ def getTreeDBH(filename, tag_width):
 
     except Exception:
         print(traceback.format_exc())
-        return None
+        return "Execution failed"
+
+
+def getTreeDBH1(filename, tag_width, measured_dbh):
+
+    '''
+    Runs all incoming images as tilles 
+    '''
+    try:
+        # load image
+        im = Image.open(filename)
+
+        file = filename.split("/")[-1].split(".")[0]
+        #print(file)
+        
+        # check image orientation and rotate if needed
+        width, height = im.size
+        if width > height:
+          im = im.rotate(270, PIL.Image.NEAREST, expand = 1)
+          im.save(filename)
+
+        # run model 
+        resized_img , seg_map = MODEL.run(im)
+        seg_image = deeplab_model.label_to_color_image(seg_map, domain).astype(np.uint8)
+
+        # move to background later -- saved mask
+        new_seg_iamge = Image.fromarray(np.uint8(seg_image)).convert('RGB')
+        new_seg_iamge.save('data/outputs/seg_image_original.png')
+        resized_img.save('data/outputs/resized_original_img.png')
+
+
+        # get pixel width of tree around the tag and generate visualization
+        pixels_width = None 
+
+        if pixels_width == None:
+          print("Running Tilles")
+          seg_image = runTilles.runTilles(filename)
+
+          # move to background later -- saved mask
+          new_seg_iamge = Image.fromarray(np.uint8(seg_image)).convert('RGB')
+          new_seg_iamge.save('data/outputs/seg_image_original.png')
+
+          # get tree/tag pixel ration
+          pixels_width = pa.getTreePixelWidth(seg_image, file, measured_dbh, tag_width) 
+
+        # if no tag is detected return the message
+        if pixels_width == None:
+          return "No tag detected"
+        
+        # ESTIMATE DBH !!!
+        dbh = pixels_width * tag_width
+
+        return dbh
+
+    except Exception:
+        print(traceback.format_exc())
+        return "Execution failed"
+
+
+def getTreeDBH2(filename, tag_width, measured_dbh):
+  try:
+    # load image
+    im = Image.open(filename)
+
+    # filename
+    file = filename.split("/")[-1].split(".")[0]
+
+    # check the orientation
+    width, height = im.size
+    if width > height:
+      im = im.rotate(270, PIL.Image.NEAREST, expand = 1)
+      im.save(filename)
+
+    # run model as tilled
+    #resized_im, seg_map = MODEL.run(im)
+    resized_img, seg_image = runTilles.runTilles(filename)
+    new_seg_iamge = Image.fromarray(np.uint8(seg_image)).convert('RGB')
+    new_seg_iamge.save('data/outputs/seg_image_original_1.png')
+    resized_img.save('data/outputs/resized_original_img_1.png')
+
+    
+    # get zoom coordinates on tag
+    left,top,right,bottom = pa.getZoomCordinates(seg_image, 100)  
+
+    # Zoom into resized image
+    zoomed_img = resized_img.crop((left,top,right,bottom))
+    zoomed_img.save(f'data/outputs/zoomed_img_{file}.png') 
+
+    # get dbh on zoomed image
+    dbh = getTreeDBH(f'data/outputs/zoomed_img_{file}.png', tag_width, measured_dbh)
+
+    return dbh
+  except:
+    print(traceback.format_exc())
+    return None

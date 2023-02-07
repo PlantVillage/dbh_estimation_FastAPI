@@ -93,4 +93,4 @@ def runTilles(path):
             continue
 
     # return seg_image
-    return seg_image
+    return resized_img, seg_image
