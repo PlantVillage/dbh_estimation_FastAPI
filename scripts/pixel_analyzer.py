@@ -109,36 +109,44 @@ def find_continuous_indexes(lst, value):
 
 def generateVisualization(seg_image, x,y, avg_tree_pixel_width, w , file, indexes, box, measured_dbh, predicted_dbh):
     output_path = f'data/outputs/overlay_{file}.png'
-    fig = plt.figure(figsize=(50, 20))
-    grid_spec = gridspec.GridSpec(1, 4, width_ratios=[1, 1, 1, 1])
+    fig = plt.figure(figsize=(60, 20))
+    grid_spec = gridspec.GridSpec(1, 5, width_ratios=[1, 1, 1, 1, 1])
 
 
     # show mask 
     mask_location = 'data/outputs/resized_original_img_1.png' #'data/outputs/temp.png'
     mask = Image.open(mask_location)
     plt.subplot(grid_spec[0])
-    plt.title('Original Image', fontdict = {'fontsize' : 30})
+    plt.title(f'Original Image (Measured dbh = {measured_dbh})', fontdict = {'fontsize' : 30})
+    plt.imshow(mask)
+    plt.axis('off')
+
+    # show mask 
+    mask_location = 'data/outputs/seg_image_original_1.png' #'data/outputs/temp.png'
+    mask = Image.open(mask_location)
+    plt.subplot(grid_spec[1])
+    plt.title('Original Segmetation Mask', fontdict = {'fontsize' : 30})
     plt.imshow(mask)
     plt.axis('off')
 
     # show  resized image
     filename =  'data/outputs/resized_original_img.png' #'data/outputs/resized_img.png'
     img = Image.open(filename)
-    plt.subplot(grid_spec[1])
-    plt.title(f'Resized Image (Measured dbh = {measured_dbh})', fontdict = {'fontsize' : 30})
+    plt.subplot(grid_spec[2])
+    plt.title('Resized Image', fontdict = {'fontsize' : 30})
     plt.imshow(img)
     plt.axis('off')
 
     # show mask overlay image
     alpha = 0.6
-    plt.subplot(grid_spec[2])
+    plt.subplot(grid_spec[3])
     plt.title('Segmentation Image Overlay', fontdict = {'fontsize' : 30})
     plt.imshow(img)
     plt.imshow(seg_image, alpha=alpha)
     plt.axis('off')
 
     # show mask ovelay on image with tag and trunk pixel widht estimations
-    plt.subplot(grid_spec[3])
+    plt.subplot(grid_spec[4])
     plt.title(f'Pixel Width Overlay (Predicted dbh = {predicted_dbh})', fontdict = {'fontsize' : 30})
     DrawImage = ImageDraw.Draw(img)
     # draw tag width estimation
