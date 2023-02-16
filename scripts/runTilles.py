@@ -10,7 +10,7 @@ def runTile(filename, tile_number):
     im = Image.open(filename)
 
     # run model 
-    resized_img , seg_map = deeplab_model.MODEL.run(im)
+    resized_img , seg_map = deeplab_model.dbh_MODEL.run(im)
     seg_image = deeplab_model.label_to_color_image(seg_map, deeplab_model.domain).astype(np.uint8)
 
     # move to background later -- saved mask

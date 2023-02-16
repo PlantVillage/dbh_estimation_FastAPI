@@ -107,26 +107,167 @@ def find_continuous_indexes(lst, value):
         result.append((start_index, end_index))
     return result
 
+
+def generateVisualization_TrueAnnotation_zoomed(seg_image, x,y, avg_tree_pixel_width, w , file, indexes, box, measured_dbh, predicted_dbh):
+    #/Users/edwardamoah/Documents/GitHub/tree_dbh_estimation/data/outputs
+    output_path = f'/Users/edwardamoah/Documents/GitHub/tree_dbh_estimation/data/outputs/overlay_TrueAnnotation_zoom_{file}.png'
+    alpha = 0.6
+    fig = plt.figure(figsize=(50, 20))
+    grid_spec = gridspec.GridSpec(1, 3, width_ratios=[1, 1 , 1])
+
+
+    # original image 
+    mask_location = f'/Users/edwardamoah/Documents/GitHub/tree_dbh_estimation/data/outputs/resized_zoomed_img_{file}.png' #'data/outputs/temp.png'
+    mask1 = Image.open(mask_location)
+    plt.subplot(grid_spec[0])
+    plt.title(f'Original Image (Measured dbh = {measured_dbh})', fontdict = {'fontsize' : 30})
+    plt.imshow(mask1)
+    plt.axis('off')
+
+    # original image with mask
+    #mask_location = f'/Users/edwardamoah/Documents/GitHub/tree_dbh_estimation/data/outputs/seg_image_original_{file}.png' #'data/outputs/temp.png'
+    #mask = Image.open(mask_location)
+    mask = seg_image
+    plt.subplot(grid_spec[1])
+    plt.title('Original Segmetation Mask', fontdict = {'fontsize' : 30})
+    plt.imshow(mask1)
+    plt.imshow(mask, alpha=alpha)
+    plt.axis('off')
+
+    '''
+    # show  resized image
+    filename =  f'/Users/edwardamoah/Documents/GitHub/tree_dbh_estimation/data/outputs/resized_zoomed_img_{file}.png' #'data/outputs/resized_img.png'
+    img = Image.open(filename)
+    plt.subplot(grid_spec[2])
+    plt.title('Resized Image', fontdict = {'fontsize' : 30})
+    plt.imshow(img)
+    plt.axis('off')
+
+    seg_image = Image.open(f"/Users/edwardamoah/Documents/GitHub/tree_dbh_estimation/data/outputs/seg_image_zoomed_img_{file}.png")
+
+    # show mask overlay image
+    plt.subplot(grid_spec[3])
+    plt.title('Segmentation Image Overlay', fontdict = {'fontsize' : 30})
+    plt.imshow(img)
+    plt.imshow(seg_image, alpha=alpha)
+    plt.axis('off')
+    '''
+
+    # show mask ovelay on image with tag and trunk pixel widht estimations
+    plt.subplot(grid_spec[2])
+    plt.title(f'Pixel Width Overlay (Predicted dbh = {predicted_dbh})', fontdict = {'fontsize' : 30})
+    DrawImage = ImageDraw.Draw(mask1)
+    # draw tag width estimation
+    DrawImage.line([(int(x-(w/2)), int(y+(w/2))),(int(x+(w/2)), int(y+(w/2)))], fill="red", width=5)
+    # draw tree trunk width estimation
+
+    # draw tag box
+    (tl, tr, br, bl) = box
+    DrawImage.line([tuple(tl), tuple(tr)], fill='blue', width=3)
+    DrawImage.line([tuple(tr), tuple(br)], fill='blue', width=3)
+    DrawImage.line([tuple(br), tuple(bl)], fill='blue', width=3)
+    DrawImage.line([tuple(bl), tuple(tl)], fill='blue', width=3)
+
+    tree_x1 = indexes[0]
+    wt = avg_tree_pixel_width
+    DrawImage.line([(tree_x1 , int(y-(w/2))),( tree_x1 + wt , int(y-(w/2)))], fill="red", width=5)
+    plt.imshow(mask1)
+    plt.imshow(seg_image, alpha=alpha)
+
+    # save overlay images
+    plt.savefig(output_path)
+
+def generateVisualization_TrueAnnotation(seg_image, x,y, avg_tree_pixel_width, w , file, indexes, box, measured_dbh, predicted_dbh):
+    #/Users/edwardamoah/Documents/GitHub/tree_dbh_estimation/data/outputs
+    output_path = f'/Users/edwardamoah/Documents/GitHub/tree_dbh_estimation/data/outputs/overlay_TrueAnnotation_{file}.png'
+    alpha = 0.6
+    fig = plt.figure(figsize=(50, 20))
+    grid_spec = gridspec.GridSpec(1, 3, width_ratios=[1, 1 , 1])
+
+
+    # original image 
+    mask_location = f'/Users/edwardamoah/Documents/GitHub/tree_dbh_estimation/data/outputs/resized_original_{file}.png' #'data/outputs/temp.png'
+    mask1 = Image.open(mask_location)
+    plt.subplot(grid_spec[0])
+    plt.title(f'Original Image (Measured dbh = {measured_dbh})', fontdict = {'fontsize' : 30})
+    plt.imshow(mask1)
+    plt.axis('off')
+
+    # original image with mask
+    #mask_location = f'/Users/edwardamoah/Documents/GitHub/tree_dbh_estimation/data/outputs/seg_image_original_{file}.png' #'data/outputs/temp.png'
+    #mask = Image.open(mask_location)
+    mask = seg_image
+    plt.subplot(grid_spec[1])
+    plt.title('Original Segmetation Mask', fontdict = {'fontsize' : 30})
+    plt.imshow(mask1)
+    plt.imshow(mask, alpha=alpha)
+    plt.axis('off')
+
+    '''
+    # show  resized image
+    filename =  f'/Users/edwardamoah/Documents/GitHub/tree_dbh_estimation/data/outputs/resized_zoomed_img_{file}.png' #'data/outputs/resized_img.png'
+    img = Image.open(filename)
+    plt.subplot(grid_spec[2])
+    plt.title('Resized Image', fontdict = {'fontsize' : 30})
+    plt.imshow(img)
+    plt.axis('off')
+
+    seg_image = Image.open(f"/Users/edwardamoah/Documents/GitHub/tree_dbh_estimation/data/outputs/seg_image_zoomed_img_{file}.png")
+
+    # show mask overlay image
+    plt.subplot(grid_spec[3])
+    plt.title('Segmentation Image Overlay', fontdict = {'fontsize' : 30})
+    plt.imshow(img)
+    plt.imshow(seg_image, alpha=alpha)
+    plt.axis('off')
+    '''
+
+    # show mask ovelay on image with tag and trunk pixel widht estimations
+    plt.subplot(grid_spec[2])
+    plt.title(f'Pixel Width Overlay (Predicted dbh = {predicted_dbh})', fontdict = {'fontsize' : 30})
+    DrawImage = ImageDraw.Draw(mask1)
+    # draw tag width estimation
+    DrawImage.line([(int(x-(w/2)), int(y+(w/2))),(int(x+(w/2)), int(y+(w/2)))], fill="red", width=5)
+    # draw tree trunk width estimation
+
+    # draw tag box
+    (tl, tr, br, bl) = box
+    DrawImage.line([tuple(tl), tuple(tr)], fill='blue', width=3)
+    DrawImage.line([tuple(tr), tuple(br)], fill='blue', width=3)
+    DrawImage.line([tuple(br), tuple(bl)], fill='blue', width=3)
+    DrawImage.line([tuple(bl), tuple(tl)], fill='blue', width=3)
+
+    tree_x1 = indexes[0]
+    wt = avg_tree_pixel_width
+    DrawImage.line([(tree_x1 , int(y-(w/2))),( tree_x1 + wt , int(y-(w/2)))], fill="red", width=5)
+    plt.imshow(mask1)
+    plt.imshow(seg_image, alpha=alpha)
+
+    # save overlay images
+    plt.savefig(output_path)
+
 def generateVisualization(seg_image, x,y, avg_tree_pixel_width, w , file, indexes, box, measured_dbh, predicted_dbh):
     output_path = f'data/outputs/overlay_{file}.png'
+    alpha = 0.6
     fig = plt.figure(figsize=(60, 20))
     grid_spec = gridspec.GridSpec(1, 5, width_ratios=[1, 1, 1, 1, 1])
 
 
-    # show mask 
+    # original image 
     mask_location = 'data/outputs/resized_original_img_1.png' #'data/outputs/temp.png'
-    mask = Image.open(mask_location)
+    mask1 = Image.open(mask_location)
     plt.subplot(grid_spec[0])
     plt.title(f'Original Image (Measured dbh = {measured_dbh})', fontdict = {'fontsize' : 30})
-    plt.imshow(mask)
+    plt.imshow(mask1)
     plt.axis('off')
 
-    # show mask 
+    # original image with mask
     mask_location = 'data/outputs/seg_image_original_1.png' #'data/outputs/temp.png'
     mask = Image.open(mask_location)
     plt.subplot(grid_spec[1])
     plt.title('Original Segmetation Mask', fontdict = {'fontsize' : 30})
-    plt.imshow(mask)
+    plt.imshow(mask1)
+    plt.imshow(mask, alpha=alpha)
     plt.axis('off')
 
     # show  resized image
@@ -138,7 +279,6 @@ def generateVisualization(seg_image, x,y, avg_tree_pixel_width, w , file, indexe
     plt.axis('off')
 
     # show mask overlay image
-    alpha = 0.6
     plt.subplot(grid_spec[3])
     plt.title('Segmentation Image Overlay', fontdict = {'fontsize' : 30})
     plt.imshow(img)
@@ -218,8 +358,9 @@ def getRangTreePixelLengths(y1, y2, seg_image, x):
         return None
 
 
-def getTreePixelWidth(seg_image, file, measured_dbh, tag_width):
+def getTreePixelWidth(seg_image, file, measured_dbh, tag_width, generate_viz):
   buffer = 10 # pixel buffer. It avoids the instance of having the tag pixels in the list  
+  #print(type(seg_image))
   try:
     
     y1 = y3 = 0; y2 = y4 = y = int(len(seg_image)/3) # use the average tree pixel length all over the image
@@ -271,16 +412,22 @@ def getTreePixelWidth(seg_image, file, measured_dbh, tag_width):
         avg_tree_pixel_width = getTreePixelLenght(y2, seg_image, x, buffer) 
 
     predicted_dbh = round((avg_tree_pixel_width[0]/w) * tag_width,2)
-
-    generateVisualization(seg_image, x,y, avg_tree_pixel_width[0] ,w, file, avg_tree_pixel_width[1], box, measured_dbh, predicted_dbh)
+    
+    if generate_viz == True:
+        generateVisualization(seg_image, x,y, avg_tree_pixel_width[0] ,w, file, avg_tree_pixel_width[1], box, measured_dbh, predicted_dbh)
+    elif generate_viz == 'Large':
+        generateVisualization_TrueAnnotation(seg_image, x,y, avg_tree_pixel_width[0] ,w, file, avg_tree_pixel_width[1], box, measured_dbh, predicted_dbh)
+    elif generate_viz == 'zoom':
+        generateVisualization_TrueAnnotation_zoomed(seg_image, x,y, avg_tree_pixel_width[0] ,w, file, avg_tree_pixel_width[1], box, measured_dbh, predicted_dbh)
+    
   
-    return avg_tree_pixel_width[0]/w
+    return predicted_dbh
 
   except:
     print(traceback.format_exc())
     return None 
 
-def getZoomCordinates(seg_image, buffer_pixels):
+def getZoomCordinates(seg_image, buffer_pixels, resized_img, width, height):
     buffer = 10
     left = top = 0 ; right = len(seg_image[0]) ; bottom = len(seg_image) # initialize cordinates with sensible values
 
@@ -326,15 +473,8 @@ def getZoomCordinates(seg_image, buffer_pixels):
     tree_width = avg_tree_pixel_width[1][1] - avg_tree_pixel_width[1][0]
 
     # best for bigger trees
-    left = max(avg_tree_pixel_width[1][0] - (tree_width * 0.5), left)  # ensure that it is not negative
-    right = min(avg_tree_pixel_width[1][1] + (tree_width * 0.5), right)
-
-    # if the tree is small
-    if tree_width/w < 1.5:
-        # best for bigger trees
-        print("small tree")
-        left = avg_tree_pixel_width[1][0] - (h * 1.5)  # ensure that it is not negative
-        right = avg_tree_pixel_width[1][1] + (h * 1.5)
+    left = max(avg_tree_pixel_width[1][0] - (h), left)  # ensure that it is not negative
+    right = min(avg_tree_pixel_width[1][1] + (h), right)
 
 
     tag_top = int(y - (h/2)) ; tag_bottom =  int(y + (h/2))
@@ -342,17 +482,42 @@ def getZoomCordinates(seg_image, buffer_pixels):
     top = max(tag_top - (h * 2), top)  # ensure that it is not negative
     bottom = min( tag_bottom + (h * 2), bottom)
     
-    #print(left, top, right, bottom)
-    
-    #left = avg_tree_pixel_width[1][0] - buffer_pixels
-    #top = int(tl[0]) - (buffer_pixels*2)
-    #bottom = int(br[0]) + (buffer_pixels*2)
-    #right = avg_tree_pixel_width[1][1] + buffer_pixels
+    # extrapolate coordinates for orignial image
+    width_resized, height_resized = resized_img.size
+
+    def getRelativePoint(left, resized_ref, actual_ref):
+      return int((left/resized_ref) * actual_ref)
+
+    left1 = getRelativePoint(left, height_resized, width); right1 = getRelativePoint(right, height_resized, width)
+    top1 = getRelativePoint(top, width_resized, height); bottom1 = getRelativePoint(bottom, width_resized, height)
 
     # ensure that image is portrait
-    while right -left > bottom - top:
-        bottom = bottom + (buffer_pixels *0.5)
+    while right1 -left1 > bottom1 - top1:
+        bottom1 = bottom1 + (buffer_pixels *0.5)
 
     #print(left,top,right,bottom )
 
-    return left,top,right,bottom 
+    return left1,top1,right1,bottom1 
+
+
+
+def isTagInMask(seg_image):
+    """ Takes a numpy array of an image and return True if the image has a tag pixel"""
+    for row in range(len(seg_image)):
+        for pixel in seg_image[row]:
+            if pixel.tolist() == tag:
+                return True
+            else:
+                continue
+    return False
+
+
+def isVertical(seg_image):
+    """ Takes a numpy array of an image and return true if the tree in the image is vertical"""
+    Y, X, a = np.where(seg_image == trunk)
+    y_length = np.max(Y) - np.min(Y)
+    x_length = np.max(X) - np.min(X)
+
+    if (y_length/len(seg_image)) > x_length/len(seg_image[0]):
+        return True
+    return False

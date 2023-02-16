@@ -8,6 +8,8 @@ domain = 'tree_trunk'
 
 path_to_model = '/Users/edwardamoah/Documents/GitHub/tree_semantic_segmentation/models/tree_trunk/tree_trunk_frozen_graph_1.4.pb'
 
+large_to_model = '/Users/edwardamoah/Documents/GitHub/tree_semantic_segmentation/models/tree_trunk/tree_trunk_frozen_graph_1.3.pb'
+
 #### load DeepLab Model #####
 class DeepLabModel(object):
   """Class to load deeplab model and run inference."""
@@ -53,7 +55,11 @@ class DeepLabModel(object):
     return resized_image, seg_map
 
 
-MODEL = DeepLabModel(path_to_model) 
+#MODEL = DeepLabModel(path_to_model) 
+
+dbh_MODEL = DeepLabModel(path_to_model) 
+
+zoom_MODEL = DeepLabModel(large_to_model) 
 
 
 def create_tree_trunk_label_colormap():
